@@ -59,10 +59,23 @@ args = parser.parse_args()
 class DumbbellTopo(Topo):
     "Dumbbell topology for Shrew experiment"
     def build(self, n=6, bw_net=10, delay='20ms', bw_host=10, maxq=None):
-    #TODO: Add your code to create topology
+        hl1 = self.addHost('hl1', ip='10.0.0.1')
+        hr1 = self.addHost('hr1', ip='10.0.0.2' )
+        hl2 = self.addHost('hl2', ip='10.0.0.3')
+        hr2 = self.addHost('hr2', ip='10.0.0.4')
+        a1 = self.addHost('a1', ip='10.0.0.5')
+        a2 = self.addHost('a2', ip='10.0.0.6')
+        s1 = self.addSwitch('s1')
+        s2 = self.addSwitch('s2')
 
-		
-	
+        self.addLink(hl1, s1, bw=bw_host, delay=delay, max_queue_size=maxq)
+        self.addLink(hr1, s2, bw=bw_host, delay=delay, max_queue_size=maxq)
+        self.addLink(hl2, s1, bw=bw_host, delay=delay, max_queue_size=maxq)
+        self.addLink(hr2, s2, bw=bw_host, delay=delay, max_queue_size=maxq)
+        self.addLink(a1, s1, bw=bw_host, delay=delay, max_queue_size=maxq)
+        self.addLink(a2, s2, bw=bw_host, delay=delay, max_queue_size=maxq)
+        self.addLink(s1, s2, bw=bw_net, delay=delay, max_queue_size=maxq)
+
 def bbnet():
     "Create network and run shrew  experiment"
     print "starting mininet ...."
@@ -75,11 +88,16 @@ def bbnet():
     net.start()
     dumpNodeConnections(net.hosts)
 
-    #TODO: Add your code to test reachability of hosts
+    ### test reachability
+    net.pingAll()
 
-    #TODO: Add yoour code to start long lived TCP flows 
-  
-    
+    ### iperf
+    hl1, hr1, hl2, hr2 = net.get('hl1', 'hr1', 'hl2', 'hr2')
+    hl1.cmd('iperf -s -p 5001 -i 1 &')
+    hl2.cmd('iperf -s -p 5002 -i 1 &')
+    hr1.cmd('iperf -c %s -p 5001 -t 600 &' % hl1.IP())
+    hr2.cmd('iperf -c %s -p 5002 -t 600 &' % hl2.IP())
+
     CLI(net)
     net.stop()
 
